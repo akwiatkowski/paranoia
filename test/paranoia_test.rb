@@ -17,6 +17,9 @@ ActiveRecord::Base.connection.execute 'CREATE TABLE related_models (id INTEGER N
 ActiveRecord::Base.connection.execute 'CREATE TABLE employers (id INTEGER NOT NULL PRIMARY KEY, deleted_at DATETIME)'
 ActiveRecord::Base.connection.execute 'CREATE TABLE employees (id INTEGER NOT NULL PRIMARY KEY, deleted_at DATETIME)'
 ActiveRecord::Base.connection.execute 'CREATE TABLE jobs (id INTEGER NOT NULL PRIMARY KEY, employer_id INTEGER NOT NULL, employee_id INTEGER NOT NULL, deleted_at DATETIME)'
+ActiveRecord::Base.connection.execute 'CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY, email STRING, deleted_at DATETIME)'
+ActiveRecord::Base.connection.execute 'CREATE TABLE cats (id INTEGER NOT NULL PRIMARY KEY, email STRING, deleted_at DATETIME)'
+
 
 class ParanoiaTest < Test::Unit::TestCase
   def test_plain_model_class_is_not_paranoid
@@ -205,6 +208,37 @@ class ParanoiaTest < Test::Unit::TestCase
     assert_equal 0, ParanoidModel.unscoped.where(id: model.id).count
   end
 
+  def test_uniq_validation_turned_off_default
+    email = 'test@test.com'
+    u = User.new(:email => email)
+    u.save!
+    u.delete
+
+    assert_equal 0, User.count
+    assert_equal 1, User.unscoped.count
+
+    v = User.new(:email => email)
+    assert_equal v.valid?, true
+    v.save!
+
+    y = User.new(:email => email)
+    assert_equal y.valid?, false
+  end
+
+  def test_uniq_validation_turned_on
+    email = 'test@test.com'
+    u = Cat.new(:email => email)
+    u.save!
+    u.delete
+
+    assert_equal 0, Cat.count
+    assert_equal 1, Cat.unscoped.count
+
+    v = Cat.new(:email => email)
+    assert_equal v.valid?, false
+  end
+
+
   private
   def get_featureful_model
     FeaturefulModel.new(:name => 'not empty')
@@ -261,4 +295,14 @@ class Job < ActiveRecord::Base
   acts_as_paranoid
   belongs_to :employer
   belongs_to :employee
+end
+
+class User < ActiveRecord::Base
+  acts_as_paranoid
+  validates_uniqueness_of :email
+end
+
+class Cat < ActiveRecord::Base
+  acts_as_paranoid
+  validates_uniqueness_of :email, without_deleted: false
 end

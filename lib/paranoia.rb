@@ -14,7 +14,7 @@ module ActiveRecord
         relation = build_relation(finder_class, table, attribute, value)
         relation = relation.and(table[finder_class.primary_key.to_sym].not_eq(record.send(:id))) if record.persisted?
         # Turn off uniq validation to deleted records
-        relation = relation.and(table[:deleted_at].eq(nil)) if record.class.paranoid?
+        relation = relation.and(table[:deleted_at].eq(nil)) if record.class.paranoid? and not options[:without_deleted] == false
 
         Array.wrap(options[:scope]).each do |scope_item|
           scope_value = record.read_attribute(scope_item)
